@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tycoon Master – Wirtschafts-Matrix v3.2</title>
+    <style>
+        /* ── DESIGN TOKENS ─────────────────────────────────────── */
+        :root {
+            --bg:          #f0f2f5;
+            --surface:     #ffffff;
+            --surface-alt: #f8f9fb;
+            --border:      #e2e5ea;
+            --border-strong: #c8cdd6;
+
+            --text-primary:   #1a2233;
+            --text-secondary: #5a6478;
+            --text-muted:     #8c97a8;
+
+            --blue:    #2563eb;
+            --blue-lt: #eff4ff;
+            --green:   #16a34a;
+            --green-lt:#f0fdf4;
+            --red:     #dc2626;
+            --red-lt:  #fef2f2;
+            --amber:   #d97706;
+            --amber-lt:#fffbeb;
+            --purple:  #7c3aed;
+            --purple-lt:#f5f3ff;
+            --teal:    #0d9488;
+
+            --radius-sm: 4px;
+            --radius:    8px;
+            --radius-lg: 12px;
+
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
+            --shadow:    0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        /* ── RESET & BASE ──────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            background: var(--bg);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px 16px 48px;
+        }
+
+        /* ── LAYOUT ─────────────────────────────────────────────── */
+        .container { max-width: 1640px; margin: 0 auto; }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 520px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+        @media (max-width: 1100px) { .main-grid { grid-template-columns: 1fr; } }
+
+        /* ── HEADER ─────────────────────────────────────────────── */
+        .app-header {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border);
+        }
+        .app-header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
+        }
+        .app-header .version-tag {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            padding: 2px 7px;
+            border-radius: 20px;
+        }
+        .app-header .subtitle {
+            margin: 0 0 0 auto;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* ── STORAGE BAR ────────────────────────────────────────── */
+        .storage-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--blue);
+            border-radius: var(--radius);
+            padding: 10px 16px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+            gap: 12px;
+        }
+        #storageStatus {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .storage-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+        /* ── CARD ───────────────────────────────────────────────── */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        /* Section accent strips — one clear system */
+        .card--setup    { border-top: 3px solid var(--teal); }
+        .card--build    { border-top: 3px solid var(--blue); }
+        .card--shop     { border-top: 3px solid var(--purple); }
+        .card--optimizer{ border-top: 3px solid var(--amber); }
+        .card--results  { border-top: 3px solid var(--green); }
+        .card--data     { border-top: 3px solid var(--border-strong); }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            cursor: pointer;
+            user-select: none;
+            gap: 10px;
+        }
+        .card-header:hover { background: var(--surface-alt); }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+        .card-title .icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .card--setup    .icon { background: #e6faf8; }
+        .card--build    .icon { background: var(--blue-lt); }
+        .card--shop     .icon { background: var(--purple-lt); }
+        .card--optimizer .icon { background: var(--amber-lt); }
+        .card--results  .icon { background: var(--green-lt); }
+        .card--data     .icon { background: var(--surface-alt); }
+
+        .card-toggle {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            font-family: monospace;
+            flex-shrink: 0;
+        }
+
+        .card-body { padding: 0 18px 18px; }
+        .card.collapsed .card-body { display: none; }
+        .card.collapsed { padding-bottom: 0; }
+
+        .card-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin: 0 0 14px;
+            padding-top: 2px;
+        }
+
+        /* ── FORMS ──────────────────────────────────────────────── */
+        .form-group { margin-bottom: 14px; }
+        .form-row   { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            color: var(--text-primary);
+            background: var(--surface);
+            transition: border-color 0.15s;
+        }
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+        }
+        input[type="color"] {
+            width: 48px;
+            height: 34px;
+            padding: 2px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+        }
+
+        .input-section {
+            background: var(--surface-alt);
+            border-radius: var(--radius);
+            padding: 12px;
+            margin-bottom: 14px;
+            border: 1px solid var(--border);
+        }
+        .input-section--demand { border-left: 3px solid var(--red); }
+        .input-section--supply { border-left: 3px solid var(--green); }
+        .input-section--cycle  { border-left: 3px solid var(--blue); }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* ── BUTTONS ─────────────────────────────────────────────── */
+        /* One system: .btn + modifier */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 8px 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.15s, background 0.15s;
+            white-space: nowrap;
+        }
+        .btn:hover { opacity: 0.88; }
+        .btn:active { opacity: 0.75; }
+
+        .btn--primary   { background: var(--blue);   color: #fff; }
+        .btn--success   { background: var(--green);  color: #fff; }
+        .btn--danger    { background: var(--red);    color: #fff; }
+        .btn--amber     { background: var(--amber);  color: #fff; }
+        .btn--purple    { background: var(--purple); color: #fff; }
+        .btn--ghost     { background: var(--surface-alt); color: var(--text-secondary); border: 1px solid var(--border-strong); }
+        .btn--full      { width: 100%; }
+        .btn--sm        { padding: 5px 10px; font-size: 12px; }
+        .btn--xs        { padding: 3px 8px;  font-size: 11px; }
+        .btn--icon      { width: 30px; height: 30px; padding: 0; border-radius: 50%; }
+
+        /* ── SHOP SLOT BOX ──────────────────────────────────────── */
+        .shop-slot-box {
+            background: var(--surface-alt);
+            padding: 10px;
+            border-radius: var(--radius);
+            margin-bottom: 6px;
+            border: 1px solid var(--border);
+        }
+        .shop-slot-box label { margin-bottom: 6px; }
+        .slot-rate-info {
+            font-size: 11px;
+            color: var(--blue);
+            font-weight: 600;
+            margin-top: 4px;
+            display: block;
+        }
+        .time-sep { color: var(--text-muted); font-weight: bold; padding: 0 2px; }
+
+        /* ── TABLES ─────────────────────────────────────────────── */
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+        th, td { border: 1px solid var(--border); padding: 9px 11px; text-align: left; }
+        th {
+            background: var(--surface-alt);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: var(--text-muted);
+        }
+        tr:hover td { background: #fafbfd; }
+
+        /* ── BADGES ─────────────────────────────────────────────── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .badge--ok     { background: var(--green-lt);  color: var(--green); border: 1px solid #bbf7d0; }
+        .badge--error  { background: var(--red-lt);    color: var(--red);   border: 1px solid #fecaca; }
+        .badge--info   { background: var(--blue-lt);   color: var(--blue);  border: 1px solid #bfdbfe; }
+        .badge--type   { color: #fff; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+
+        /* ── PRODUCT CHECKBOX GRID ──────────────────────────────── */
+        .product-checkbox-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 6px;
+            max-height: 160px;
+            overflow-y: auto;
+            padding: 8px;
+            background: var(--surface-alt);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+        }
+        .product-checkbox-grid label {
+            font-weight: 500;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin: 0;
+            cursor: pointer;
+            padding: 3px 6px;
+            border-radius: var(--radius-sm);
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+        }
+        .product-checkbox-grid label:hover { background: var(--blue-lt); border-color: #bfdbfe; }
+        .product-checkbox-grid input[type=checkbox] { width: auto; padding: 0; cursor: pointer; }
+
+        /* ── RECOMMENDATIONS ────────────────────────────────────── */
+        .rec-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            gap: 10px;
+        }
+        .rec-item:last-child { border-bottom: none; }
+
+        /* ── OPTIMIZER SECTION (inside white card) ──────────────── */
+        .opt-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--surface-alt);
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            margin-top: 10px;
+            margin-bottom: 4px;
+            border: 1px solid var(--border);
+        }
+        .opt-shop-title { font-weight: 700; font-size: 13px; color: var(--text-primary); }
+
+        .opt-slot-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+        }
+        .opt-slot-rank {
+            background: var(--blue-lt);
+            color: var(--blue);
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+        .opt-slot-product { flex: 1; font-weight: 600; color: var(--text-primary); }
+        .opt-slot-rate { color: var(--text-muted); font-size: 11px; white-space: nowrap; }
+        .opt-slot-coverage { font-size: 11px; font-weight: 700; white-space: nowrap; }
+
+        .opt-fill-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            overflow: hidden;
+            flex: 1;
+        }
+        .opt-fill-inner {
+            height: 100%;
+            border-radius: 3px;
+            background: var(--green);
+            transition: width 0.3s;
+        }
+        .opt-fill-inner.yellow { background: var(--amber); }
+        .opt-fill-inner.red    { background: var(--red); }
+
+        .surplus-chip {
+            display: inline-block;
+            background: var(--blue-lt);
+            color: var(--blue);
+            border-radius: var(--radius-sm);
+            padding: 1px 5px;
+            font-size: 10px;
+            margin-left: 4px;
+        }
+
+        /* ── SHOP TYPE DISPLAY ──────────────────────────────────── */
+        .shoptype-list-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .shoptype-list-item:last-child { border-bottom: none; }
+        .shoptype-products {
+            margin-top: 4px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+        .product-chip {
+            font-size: 10px;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 1px 5px;
+            color: var(--text-secondary);
+        }
+
+        /* ── ALERTS / WARNING BOXES ─────────────────────────────── */
+        .alert {
+            padding: 10px 14px;
+            border-radius: var(--radius);
+            font-size: 12px;
+            margin-top: 8px;
+        }
+        .alert--warning { background: var(--amber-lt); border: 1px solid #fde68a; color: #92400e; }
+        .alert--success { background: var(--green-lt);  border: 1px solid #bbf7d0; color: #14532d; }
+        .alert--info    { background: var(--blue-lt);   border: 1px solid #bfdbfe; color: #1e3a8a; }
+
+        /* ── MISC ───────────────────────────────────────────────── */
+        .color-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+        .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+        .text-supply { color: var(--green); font-weight: 700; }
+        .text-demand { color: var(--amber); }
+        .text-retail { color: var(--purple); }
+        .text-ok     { color: var(--green); font-weight: 700; }
+        .text-bad    { color: var(--red);   font-weight: 700; }
+        .empty-state { color: var(--text-muted); font-size: 13px; padding: 8px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="app-header">
+        <h1>📈 Tycoon Master – Wirtschafts-Matrix</h1>
+        <span class="version-tag">v3.2</span>
+        <span class="subtitle">Optimierer · Wirtschaftskreislauf · Laden-Management</span>
+    </div>
+
+    <!-- STORAGE BAR -->
+    <div class="storage-bar">
+        <span id="storageStatus">💾 Bereit – lade deine JSON-Datei um fortzufahren.</span>
+        <div class="storage-actions">
+            <button class="btn btn--ghost btn--sm" onclick="exportData()">⬇ Exportieren (.json)</button>
+            <button class="btn btn--primary btn--sm" onclick="document.getElementById('importFile').click()">⬆ Importieren</button>
+            <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this)">
+        </div>
+    </div>
+
+    <div class="main-grid">
+
+        <!-- ══ LEFT COLUMN: INPUT FORMS ══════════════════════════════ -->
+        <div>
+
+            <!-- LADENTYPEN -->
+            <div class="card card--setup">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <h2 class="card-title">
+                        <span class="icon">🏷️</span>
+                        Ladentypen verwalten
+                    </h2>
+                    <span class="card-toggle">[-]</span>
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Definiere welche Produkte in welchem Ladentyp verkauft werden dürfen. Der Optimierer nutzt diese Regeln automatisch.</p>
+                    <div class="form-group">
+                        <label>Name des Ladentyps</label>
+                        <input type="text" id="stName" placeholder="z.B. Supermarkt, Metzger">
+                    </div>
+                    <div class="form-group">
+                        <label>Kennfarbe</label>
+                        <input type="color" id="stColor" value="#2563eb">
+                    </div>
+                    <div class="form-group">
+                        <label>Erlaubte Produkte</label>
+                        <div class="product-checkbox-grid" id="stProductGrid">
+                            <span style="color:var(--text-muted);font-size:12px;">Lade zuerst deine JSON-Datei um Produkte zu sehen.</span>
+                        </div>
+                    </div>
+                    <button class="btn btn--success btn--full" onclick="saveShopType()">Ladentyp speichern</button>
+                    <div id="shopTypesDisplay" style="margin-top:12px;"></div>
+                </div>
+            </div>
+
+            <!-- REZEPT DEFINIEREN -->
+            <div class="card card--build">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <h2 class="card-title">
+                        <span class="icon">🏭</span>
+                        Rezept / Gebäudetyp definieren
+                    </h2>
+                    <span class="card-toggle">[-]</span>
+                </div>
+                <div class="card-body">
+                    <form id="blueprintForm" onsubmit="registerBlueprint(event)">
+                        <div class="form-group">
+                            <label>Name des Gebäudes</label>
+                            <input type="text" id="bName" placeholder="z.B. Wurstfabrik" required>
+                        </div>
+                        <div class="input-section input-section--cycle">
+                            <div class="section-label">⏱ Produktionszyklus</div>
+                            <div class="form-row">
+                                <input type="number" id="baseHours" value="1" min="1" required style="width:100px;">
+                                <span style="color:var(--text-secondary);font-size:13px;">Stunde(n) pro Zyklus</span>
+                            </div>
+                        </div>
+                        <div class="input-section input-section--demand">
+                            <div class="section-label">
+                                Benötigte Zutaten
+                                <button type="button" class="btn btn--success btn--icon" onclick="addInputRow()">+</button>
+                            </div>
+                            <div id="inputsContainer"></div>
+                        </div>
+                        <div class="input-section input-section--supply">
+                            <div class="section-label">Erzeugte Produkte (max. 3)</div>
+                            <datalist id="knownProductsList"></datalist>
+                            <div class="form-row">
+                                <input type="text" id="outName1" placeholder="Produkt 1" list="knownProductsList" required>
+                                <input type="number" id="outQty1" placeholder="Menge" required style="width:90px;">
+                            </div>
+                            <div class="form-row">
+                                <input type="text" id="outName2" placeholder="Produkt 2" list="knownProductsList">
+                                <input type="number" id="outQty2" placeholder="Menge" style="width:90px;">
+                            </div>
+                            <div class="form-row">
+                                <input type="text" id="outName3" placeholder="Produkt 3" list="knownProductsList">
+                                <input type="number" id="outQty3" placeholder="Menge" style="width:90px;">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn--primary btn--full">Rezept speichern</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- GEBÄUDE AUFSTELLEN -->
+            <div class="card card--build">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <h2 class="card-title">
+                        <span class="icon">🏗️</span>
+                        Gebäude aufstellen
+                    </h2>
+                    <span class="card-toggle">[-]</span>
+                </div>
+                <div class="card-body">
+                    <form id="infraForm" onsubmit="placeBuilding(event)">
+                        <div class="form-group">
+                            <label>Gebäudetyp</label>
+                            <select id="infraSelect" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Anzahl</label>
+                            <input type="number" id="infraCount" value="1" min="1" required>
+                        </div>
+                        <button type="submit" class="btn btn--success btn--full">Aufstellen</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- LADEN VERWALTEN -->
+            <div class="card card--shop">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <h2 class="card-title">
+                        <span class="icon">🏪</span>
+                        Laden einrichten
+                    </h2>
+                    <span class="card-toggle">[-]</span>
+                </div>
+                <div class="card-body">
+                    <form id="shopForm" onsubmit="registerShop(event)">
+                        <div class="form-group">
+                            <label>Name des Ladens</label>
+                            <input type="text" id="shopName" placeholder="z.B. Hauptstraße Filiale" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Ladentyp</label>
+                            <select id="shopType" onchange="adjustShopSlots()">
+                                <option value="">-- Kein Typ / Alle Produkte --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Anzahl Verkaufsflächen (4 – 6)</label>
+                            <select id="shopSlotCount" onchange="adjustShopSlots()">
+                                <option value="4">4 Flächen</option>
+                                <option value="5">5 Flächen</option>
+                                <option value="6" selected>6 Flächen</option>
+                            </select>
+                        </div>
+                        <div id="shopSlotsContainer"></div>
+                        <button type="submit" class="btn btn--purple btn--full">Laden speichern</button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ══ RIGHT COLUMN: RESULTS ══════════════════════════════════ -->
+        <div>
+
+            <!-- OPTIMIERER -->
+            <div class="card card--optimizer">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <h2 class="card-title">
+                        <span class="icon">🎯</span>
+                        Laden-Optimierer
+                    </h2>
+                    <span class="card-toggle">[-]</span>
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Analysiert deinen Produktions-Überschuss und empfiehlt die optimale Slot-Belegung – basierend auf maximalem Durchsatz.</p>
+                    <div style="display:flex;gap:10px;margin-bottom:10px;">
+                        <div style="flex:1;">
+                            <label>Max. Slots pro Laden</label>
+                            <select id="optMaxSlots">
+                                <option value="4">4 Slots</option>
+                                <option value="5">5 Slots</option>
+                                <option value="6" selected>6 Slots</option>
+                            </select>
+                        </div>
+                        <div style="flex:1;">
+                            <label>Strategie</label>
+                            <select id="optStrategy">
+                                <option value="surplus">Überschuss zuerst</option>
+                                <option value="variety">Produktvielfalt</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn--amber btn--full" onclick="runShopOptimizer()">⚡ Optimierung berechnen</button>
+                    <div id="optimizerResults" style="margin-top:12px;"></div>
+                </div>
+            </div>
+
+            <!-- EMPFEHLUNGEN -->
+            <div class="card card--results">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <h2 class="card-title">
+                        <span class="icon">💡</span>
+                        Auslastungs-Empfehlungen
+                    </h2>
+                    <span class="card-toggle">[-]</span>
+                </div>
+                <div class="card-body">
+                    <div id="recommendationsContainer" class="empty-state">Berechne…</div>
+                </div>
+            </div>
+
+            <!-- WIRTSCHAFTSKREISLAUF -->
+            <div class="card card--results">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <h2 class="card-title">
+                        <span class="icon">📊</span>
+                        Wirtschaftskreislauf (Live)
+                    </h2>
+                    <span class="card-toggle">[-]</span>
+                </div>
+                <div class="card-body">
+                    <div id="matrixContainer" class="empty-state">Keine Gebäude aktiv.</div>
+                </div>
+            </div>
+
+            <!-- AKTIVE LÄDEN -->
+            <div class="card card--data">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <h2 class="card-title">
+                        <span class="icon">🏪</span>
+                        Aktive Läden
+                    </h2>
+                    <span class="card-toggle">[-]</span>
+                </div>
+                <div class="card-body">
+                    <div id="activeShopsContainer" class="empty-state">Keine Läden registriert.</div>
+                </div>
+            </div>
+
+            <!-- INFRASTRUKTUR -->
+            <div class="card card--data">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <h2 class="card-title">
+                        <span class="icon">🏗️</span>
+                        Aktive Infrastruktur
+                    </h2>
+                    <span class="card-toggle">[-]</span>
+                </div>
+                <div class="card-body">
+                    <div id="activeInfraContainer" class="empty-state">Keine Gebäude aufgestellt.</div>
+                </div>
+            </div>
+
+            <!-- REZEPTE -->
+            <div class="card card--data">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <h2 class="card-title">
+                        <span class="icon">📐</span>
+                        Gespeicherte Rezepte
+                    </h2>
+                    <span class="card-toggle">[-]</span>
+                </div>
+                <div class="card-body">
+                    <div id="blueprintsContainer" class="empty-state">Keine Rezepte vorhanden.</div>
+                </div>
+            </div>
+
+        </div>
+    </div><!-- /main-grid -->
+</div><!-- /container -->
+
+<script>
+    // ── STATE ──────────────────────────────────────────────────────────
+    let blueprints        = [];
+    let infrastructure    = [];
+    let shops             = [];
+    let shopTypes         = [];
+    let globalProductRates = {};
+    let lastOptimizerOutput = [];
+
+    const DEFAULT_SHOP_TYPES = [
+        { name: "Supermarkt",          color: "#16a34a", allowedProducts: ["Ei","Kuhmilch","Flaschenmilch","Joghurt","Käse aus Kuhmilch","Schwarzer Tee","Grüner Tee","Weißer Tee","Blütenhonig","Kastanienhonig","Kiefernhonig","Hühnerfleisch","Rindfleisch","Putenfleisch","Salami","Hackfleisch","Hamburger-Fleischbällchen","Cordon Bleu","Nugget"] },
+        { name: "Metzger",             color: "#dc2626", allowedProducts: ["Hühnerfleisch","Rindfleisch","Putenfleisch","Salami","Hackfleisch","Hamburger-Fleischbällchen","Cordon Bleu","Nugget","Ei"] },
+        { name: "Bekleidungsgeschäft", color: "#7c3aed", allowedProducts: ["Lederjacke","Lederschuhe","Portemonnaie"] },
+        { name: "Tee-Laden",           color: "#0d9488", allowedProducts: ["Schwarzer Tee","Grüner Tee","Weißer Tee"] }
+    ];
+
+    // ── INIT ───────────────────────────────────────────────────────────
+    window.onload = function () {
+        shopTypes = JSON.parse(JSON.stringify(DEFAULT_SHOP_TYPES));
+        adjustShopSlots();
+        rebuildShopTypeDropdown();
+        rebuildStProductGrid();
+        rebuildDropdowns();
+        renderShopTypesDisplay();
+        calculateMatrix();
+    };
+
+    // ── UI HELPERS ─────────────────────────────────────────────────────
+    function toggleCard(headerEl) {
+        const card = headerEl.parentElement;
+        const icon = headerEl.querySelector('.card-toggle');
+        card.classList.toggle('collapsed');
+        icon.textContent = card.classList.contains('collapsed') ? '[+]' : '[-]';
+    }
+
+    function escHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function setStatus(msg) {
+        document.getElementById('storageStatus').textContent = msg;
+    }
+
+    // ── PRODUCT HELPERS ────────────────────────────────────────────────
+    function getAllKnownProducts() {
+        const s = new Set();
+        blueprints.forEach(b => b.outputs.forEach(o => s.add(o.name)));
+        return Array.from(s).sort();
+    }
+
+    // ── SHOP SLOTS ─────────────────────────────────────────────────────
+    function handleProductChange(sel) {
+        const prod = sel.value;
+        const row = sel.parentElement;
+        const piecesInput  = row.querySelector('.shop-slot-pieces');
+        const minutesInput = row.querySelector('.shop-slot-minutes');
+        const infoSpan     = row.parentElement.querySelector('.slot-rate-info');
+        if (prod && globalProductRates[prod]) {
+            const g = globalProductRates[prod];
+            piecesInput.value  = g.pieces;
+            minutesInput.value = g.minutes;
+            if (infoSpan) infoSpan.textContent = `Gespeicherter Takt: ${g.pieces}/${g.minutes}min`;
+        } else {
+            if (infoSpan) infoSpan.textContent = '';
+        }
+    }
+
+    function adjustShopSlots() {
+        const count = parseInt(document.getElementById('shopSlotCount').value);
+        const selectedTypeName = document.getElementById('shopType').value;
+        const container = document.getElementById('shopSlotsContainer');
+        container.innerHTML = '';
+
+        const allProducts  = getAllKnownProducts();
+        const selectedType = shopTypes.find(t => t.name === selectedTypeName);
+        const allowed      = selectedType
+            ? allProducts.filter(p => selectedType.allowedProducts.includes(p))
+            : allProducts;
+
+        if (selectedType && allowed.length === 0) {
+            container.innerHTML = `<div class="alert alert--warning">Für Typ „${escHtml(selectedTypeName)}" sind noch keine passenden Produkte vorhanden.</div>`;
+        }
+
+        for (let i = 1; i <= count; i++) {
+            let opts = `<option value="">– Leer –</option>`;
+            allowed.forEach(p => { opts += `<option value="${escHtml(p)}">${escHtml(p)}</option>`; });
+
+            const typeLabel = selectedType
+                ? `<span style="color:${selectedType.color};font-size:10px;margin-left:4px;">[${escHtml(selectedType.name)}]</span>`
+                : '';
+
+            container.innerHTML += `
+                <div class="shop-slot-box" id="slotBox_${i}">
+                    <label>Fläche ${i}${typeLabel}</label>
+                    <div class="form-row">
+                        <select class="shop-slot-product" style="flex:2;" onchange="handleProductChange(this)">${opts}</select>
+                        <input type="number" class="shop-slot-pieces" placeholder="Menge" min="1" style="width:70px;">
+                        <span class="time-sep">/</span>
+                        <input type="number" class="shop-slot-minutes" placeholder="Min" min="1" style="width:60px;">
+                        <span class="time-sep">M</span>
+                    </div>
+                    <span class="slot-rate-info"></span>
+                </div>`;
+        }
+    }
+
+    // ── DROPDOWNS ──────────────────────────────────────────────────────
+    function rebuildDropdowns() {
+        const infraSel = document.getElementById('infraSelect');
+        const prev = infraSel.value;
+        infraSel.innerHTML = '';
+        blueprints.forEach(b => {
+            infraSel.innerHTML += `<option value="${escHtml(b.name)}">${escHtml(b.name)}</option>`;
+        });
+        if (prev) infraSel.value = prev;
+
+        // Refresh datalist for blueprint output & input fields
+        const dl = document.getElementById('knownProductsList');
+        if (dl) {
+            dl.innerHTML = getAllKnownProducts().map(p => `<option value="${escHtml(p)}">`).join('');
+        }
+
+        const products = getAllKnownProducts();
+        document.querySelectorAll('.shop-slot-product').forEach(sel => {
+            const cur = sel.value;
+            let html = `<option value="">– Leer –</option>`;
+            products.forEach(p => {
+                html += `<option value="${escHtml(p)}" ${p === cur ? 'selected' : ''}>${escHtml(p)}</option>`;
+            });
+            sel.innerHTML = html;
+        });
+
+        rebuildShopTypeDropdown();
+        rebuildStProductGrid();
+    }
+
+    // FIX: removed the stray '; that was appended to every option
+    function rebuildShopTypeDropdown() {
+        const sel  = document.getElementById('shopType');
+        const prev = sel.value;
+        sel.innerHTML = '<option value="">-- Kein Typ / Alle Produkte --</option>';
+        shopTypes.forEach(t => {
+            sel.innerHTML += `<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`;
+        });
+        if (prev) sel.value = prev;
+    }
+
+    function rebuildStProductGrid() {
+        const grid     = document.getElementById('stProductGrid');
+        const products = getAllKnownProducts();
+        if (products.length === 0) {
+            grid.innerHTML = '<span style="color:var(--text-muted);font-size:12px;">Keine Produkte vorhanden.</span>';
+            return;
+        }
+        const editingName = document.getElementById('stName').value.trim();
+        const existing    = shopTypes.find(t => t.name === editingName);
+        const checked     = existing ? existing.allowedProducts : [];
+        grid.innerHTML    = products.map(p =>
+            `<label><input type="checkbox" class="st-product-cb" value="${escHtml(p)}" ${checked.includes(p) ? 'checked' : ''}> ${escHtml(p)}</label>`
+        ).join('');
+    }
+
+    // ── SHOP TYPES CRUD ────────────────────────────────────────────────
+    function saveShopType() {
+        const name  = document.getElementById('stName').value.trim();
+        const color = document.getElementById('stColor').value;
+        if (!name) { alert('Bitte einen Typ-Namen eingeben.'); return; }
+        const allowed = Array.from(document.querySelectorAll('.st-product-cb:checked')).map(cb => cb.value);
+        if (allowed.length === 0) { alert('Bitte mindestens ein Produkt auswählen.'); return; }
+        const idx = shopTypes.findIndex(t => t.name === name);
+        if (idx !== -1) shopTypes[idx] = { name, color, allowedProducts: allowed };
+        else shopTypes.push({ name, color, allowedProducts: allowed });
+        document.getElementById('stName').value  = '';
+        document.getElementById('stColor').value = '#2563eb';
+        rebuildShopTypeDropdown();
+        renderShopTypesDisplay();
+        adjustShopSlots();
+    }
+
+    function loadShopTypeIntoForm(idx) {
+        const t = shopTypes[idx];
+        document.getElementById('stName').value  = t.name;
+        document.getElementById('stColor').value = t.color;
+        rebuildStProductGrid();
+        document.querySelectorAll('.st-product-cb').forEach(cb => {
+            cb.checked = t.allowedProducts.includes(cb.value);
+        });
+    }
+
+    function removeShopType(idx) {
+        shopTypes.splice(idx, 1);
+        rebuildShopTypeDropdown();
+        renderShopTypesDisplay();
+        adjustShopSlots();
+    }
+
+    function renderShopTypesDisplay() {
+        const container = document.getElementById('shopTypesDisplay');
+        if (shopTypes.length === 0) { container.innerHTML = ''; return; }
+        let html = '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin-bottom:6px;">Aktive Typen</div>';
+        shopTypes.forEach((t, idx) => {
+            html += `<div class="shoptype-list-item">
+                <div style="flex:1;">
+                    <span class="badge--type" style="background:${t.color};">${escHtml(t.name)}</span>
+                    <div class="shoptype-products">${t.allowedProducts.map(p => `<span class="product-chip">${escHtml(p)}</span>`).join('')}</div>
+                </div>
+                <div style="display:flex;gap:4px;flex-shrink:0;margin-top:2px;">
+                    <button class="btn btn--ghost btn--xs" onclick="loadShopTypeIntoForm(${idx})">✏️</button>
+                    <button class="btn btn--danger btn--xs" onclick="removeShopType(${idx})">✕</button>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    // ── REGISTER SHOP ──────────────────────────────────────────────────
+    function registerShop(e) {
+        e.preventDefault();
+        const name     = document.getElementById('shopName').value.trim();
+        const typeName = document.getElementById('shopType').value;
+        let slots = [];
+
+        document.querySelectorAll('.shop-slot-box').forEach(box => {
+            const prod    = box.querySelector('.shop-slot-product').value;
+            const pieces  = parseFloat(box.querySelector('.shop-slot-pieces').value);
+            const minutes = parseFloat(box.querySelector('.shop-slot-minutes').value);
+            if (prod && !isNaN(pieces) && !isNaN(minutes) && minutes > 0) {
+                const rate = (pieces / minutes) * 60;
+                globalProductRates[prod] = { pieces, minutes, rate };
+                slots.push({ productName: prod, pieces, minutes, rate });
+            }
+        });
+
+        const newShop = { name, typeName, slots };
+        const idx = shops.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
+        if (idx !== -1) shops[idx] = newShop; else shops.push(newShop);
+
+        syncAllShopsWithGlobalRates();
+        setStatus(`✓ Laden „${name}" gespeichert & Raten synchronisiert.`);
+        document.getElementById('shopForm').reset();
+        adjustShopSlots();
+        calculateMatrix();
+    }
+
+    function syncAllShopsWithGlobalRates() {
+        shops.forEach(shop => {
+            shop.slots.forEach(slot => {
+                if (globalProductRates[slot.productName]) {
+                    const g = globalProductRates[slot.productName];
+                    slot.pieces  = g.pieces;
+                    slot.minutes = g.minutes;
+                    slot.rate    = g.rate;
+                }
+            });
+        });
+    }
+
+    // ── REGISTER BLUEPRINT ─────────────────────────────────────────────
+    function registerBlueprint(e) {
+        e.preventDefault();
+        const name      = document.getElementById('bName').value.trim();
+        const baseHours = parseFloat(document.getElementById('baseHours').value) || 1;
+
+        const inputs = [];
+        document.getElementById('inputsContainer').querySelectorAll('.form-row').forEach(row => {
+            const n = row.querySelector('.input-item-name').value.trim();
+            const q = parseFloat(row.querySelector('.input-item-qty').value);
+            if (n && !isNaN(q)) inputs.push({ name: n, rate: q / baseHours });
+        });
+
+        const outputs = [];
+        for (let i = 1; i <= 3; i++) {
+            const outName = document.getElementById(`outName${i}`).value.trim();
+            const outQty  = parseFloat(document.getElementById(`outQty${i}`).value);
+            if (outName && !isNaN(outQty)) outputs.push({ name: outName, rate: outQty / baseHours });
+        }
+
+        const newBP = { name, inputs, outputs };
+        const idx = blueprints.findIndex(b => b.name.toLowerCase() === name.toLowerCase());
+        if (idx !== -1) blueprints[idx] = newBP; else blueprints.push(newBP);
+
+        document.getElementById('blueprintForm').reset();
+        document.getElementById('inputsContainer').innerHTML = '';
+        rebuildDropdowns();
+        calculateMatrix();
+    }
+
+    function addInputRow() {
+        const container = document.getElementById('inputsContainer');
+        const rowId = 'inputRow_' + Date.now() + Math.random().toString(36).substr(2, 5);
+        container.insertAdjacentHTML('beforeend', `
+            <div class="form-row" id="${rowId}">
+                <input type="text"   class="input-item-name" placeholder="Zutat" list="knownProductsList" style="flex:2;">
+                <input type="number" class="input-item-qty"  placeholder="Menge" style="width:80px;">
+                <button type="button" class="btn btn--danger btn--icon" onclick="document.getElementById('${rowId}').remove()">✕</button>
+            </div>`);
+    }
+
+    // ── PLACE BUILDING ─────────────────────────────────────────────────
+    function placeBuilding(e) {
+        e.preventDefault();
+        const bName = document.getElementById('infraSelect').value;
+        const count = parseInt(document.getElementById('infraCount').value) || 1;
+        const idx   = infrastructure.findIndex(i => i.blueprintName === bName);
+        if (idx !== -1) infrastructure[idx].count += count;
+        else infrastructure.push({ blueprintName: bName, count });
+        calculateMatrix();
+    }
+
+    // ── CALCULATE MATRIX ───────────────────────────────────────────────
+    function calculateMatrix() {
+        const globalSupply     = {};
+        const globalDemand     = {};
+        const globalRetailBurn = {};
+
+        infrastructure.forEach(infra => {
+            const bp = blueprints.find(b => b.name === infra.blueprintName);
+            if (!bp) return;
+            bp.inputs.forEach(inp => {
+                globalDemand[inp.name] = (globalDemand[inp.name] || 0) + inp.rate * infra.count;
+            });
+            bp.outputs.forEach(out => {
+                globalSupply[out.name] = (globalSupply[out.name] || 0) + out.rate * infra.count;
+            });
+        });
+
+        shops.forEach(shop => {
+            shop.slots.forEach(slot => {
+                globalRetailBurn[slot.productName] = (globalRetailBurn[slot.productName] || 0) + slot.rate;
+                globalDemand[slot.productName]     = (globalDemand[slot.productName]     || 0) + slot.rate;
+            });
+        });
+
+        const uniqueItems = new Set([...Object.keys(globalSupply), ...Object.keys(globalDemand)]);
+        const container   = document.getElementById('matrixContainer');
+        const balances    = {};
+        uniqueItems.forEach(item => {
+            balances[item] = (globalSupply[item] || 0) - (globalDemand[item] || 0);
+        });
+
+        if (uniqueItems.size === 0) {
+            container.innerHTML = '<span class="empty-state">Keine aktiven Gebäude oder Läden aufgestellt.</span>';
+            document.getElementById('recommendationsContainer').innerHTML = '<span class="empty-state">Stelle Gebäude auf oder richte Läden ein.</span>';
+            return;
+        }
+
+        let html = `<table>
+            <thead><tr>
+                <th>Artikel</th>
+                <th>Produktion /h</th>
+                <th>Fabrikbedarf /h</th>
+                <th>Ladenverkauf /h</th>
+                <th>Netto-Bilanz /h</th>
+                <th>Status</th>
+            </tr></thead><tbody>`;
+
+        uniqueItems.forEach(item => {
+            const supply        = globalSupply[item] || 0;
+            const factoryDemand = (globalDemand[item] || 0) - (globalRetailBurn[item] || 0);
+            const retailDemand  = globalRetailBurn[item] || 0;
+            const balance       = balances[item];
+            const isOk          = balance >= 0;
+
+            html += `<tr>
+                <td><strong>${escHtml(item)}</strong></td>
+                <td class="text-supply">+${Math.round(supply).toLocaleString()}</td>
+                <td class="text-demand">−${Math.round(factoryDemand).toLocaleString()}</td>
+                <td class="text-retail">−${Math.round(retailDemand).toLocaleString()}</td>
+                <td class="${isOk ? 'text-ok' : 'text-bad'}">${isOk ? '+' : ''}${Math.round(balance).toLocaleString()}</td>
+                <td><span class="badge ${isOk ? 'badge--ok' : 'badge--error'}">${isOk ? '✓ Gedeckt' : '⚠ Engpass'}</span></td>
+            </tr>`;
+        });
+
+        container.innerHTML = html + '</tbody></table>';
+        generateRecommendations(balances);
+        renderInfraTable();
+        renderBlueprintsTable();
+        renderShopsTable();
+    }
+
+    // ── RECOMMENDATIONS ────────────────────────────────────────────────
+    function generateRecommendations(balances) {
+        const container = document.getElementById('recommendationsContainer');
+        let html = '';
+        let count = 0;
+
+        blueprints.forEach(bp => {
+            if (bp.inputs.length === 0) {
+                const needed = bp.outputs.some(out => (balances[out.name] || 0) < 0);
+                if (needed) {
+                    html += `<div class="rec-item">
+                        <div>🌿 <strong>+1 ${escHtml(bp.name)}</strong> bauen – Rohstoffbasis erhöhen.</div>
+                        <span class="badge badge--info">Mangel</span>
+                    </div>`;
+                    count++;
+                }
+                return;
+            }
+
+            let maxBuildable = Infinity;
+            let hasInput = false;
+            bp.inputs.forEach(inp => {
+                const surplus = balances[inp.name] || 0;
+                if (surplus > 0) {
+                    hasInput = true;
+                    maxBuildable = Math.min(maxBuildable, Math.floor(surplus / inp.rate));
+                } else { maxBuildable = 0; }
+            });
+
+            if (hasInput && maxBuildable > 0) {
+                html += `<div class="rec-item">
+                    <div>🏭 <strong>+${maxBuildable} ${escHtml(bp.name)}</strong> bauen – Ressourcen vorhanden.</div>
+                    <span class="badge badge--ok">+${maxBuildable} machbar</span>
+                </div>`;
+                count++;
+            }
+        });
+
+        container.innerHTML = count === 0
+            ? '<div class="alert alert--success">🎉 Wirtschaft perfekt ausbalanciert!</div>'
+            : html;
+    }
+
+    // ── RENDER TABLES ──────────────────────────────────────────────────
+    function renderShopsTable() {
+        const container = document.getElementById('activeShopsContainer');
+        if (shops.length === 0) { container.innerHTML = '<span class="empty-state">Keine Läden registriert.</span>'; return; }
+
+        let html = `<table><thead><tr>
+            <th>Name</th><th>Typ</th><th>Slots (Takt → /h)</th><th>Aktion</th>
+        </tr></thead><tbody>`;
+
+        shops.forEach((shop, idx) => {
+            const typeObj   = shopTypes.find(t => t.name === shop.typeName);
+            const typeBadge = typeObj
+                ? `<span class="badge--type" style="background:${typeObj.color};">${escHtml(typeObj.name)}</span>`
+                : `<span style="color:var(--text-muted);font-size:11px;">–</span>`;
+            const slotsText = shop.slots.length
+                ? shop.slots.map(s => `🔹 ${escHtml(s.productName)}: <b>${s.pieces}/${s.minutes}min</b> ≈ −${Math.round(s.rate).toLocaleString()}/h`).join('<br>')
+                : '– Alle Slots leer –';
+
+            html += `<tr>
+                <td><strong>${escHtml(shop.name)}</strong></td>
+                <td>${typeBadge}</td>
+                <td style="font-size:12px;">${slotsText}</td>
+                <td style="white-space:nowrap;">
+                    <button class="btn btn--ghost btn--xs" onclick="loadShopIntoForm(${idx})">✏️ Bearbeiten</button>
+                    <button class="btn btn--danger btn--xs" onclick="removeShop(${idx})">Schließen</button>
+                </td>
+            </tr>`;
+        });
+
+        container.innerHTML = html + '</tbody></table>';
+    }
+
+    function removeShop(idx) {
+        shops.splice(idx, 1);
+        calculateMatrix();
+    }
+
+    function loadShopIntoForm(idx) {
+        const shop = shops[idx];
+        document.getElementById('shopName').value     = shop.name;
+        document.getElementById('shopType').value     = shop.typeName || '';
+        document.getElementById('shopSlotCount').value = Math.max(shop.slots.length, 4).toString();
+        adjustShopSlots();
+
+        const slotBoxes = document.querySelectorAll('.shop-slot-box');
+        shop.slots.forEach((slot, sIdx) => {
+            if (!slotBoxes[sIdx]) return;
+            const sel = slotBoxes[sIdx].querySelector('.shop-slot-product');
+            sel.value = slot.productName;
+            slotBoxes[sIdx].querySelector('.shop-slot-pieces').value  = slot.pieces;
+            slotBoxes[sIdx].querySelector('.shop-slot-minutes').value = slot.minutes;
+            const info = slotBoxes[sIdx].querySelector('.slot-rate-info');
+            if (info && globalProductRates[slot.productName]) {
+                const g = globalProductRates[slot.productName];
+                info.textContent = `Gespeicherter Takt: ${g.pieces}/${g.minutes}min`;
+            }
+        });
+
+        const formCard = document.getElementById('shopForm').closest('.card');
+        if (formCard.classList.contains('collapsed')) {
+            formCard.classList.remove('collapsed');
+            formCard.querySelector('.card-toggle').textContent = '[-]';
+        }
+        formCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function renderInfraTable() {
+        const container = document.getElementById('activeInfraContainer');
+        if (infrastructure.length === 0) { container.innerHTML = '<span class="empty-state">Keine Gebäude aufgestellt.</span>'; return; }
+
+        let html = `<table><thead><tr><th>Gebäude</th><th>Anzahl</th><th>Aktion</th></tr></thead><tbody>`;
+        infrastructure.forEach((infra, idx) => {
+            html += `<tr>
+                <td><strong>${escHtml(infra.blueprintName)}</strong></td>
+                <td><input type="number" min="1" value="${infra.count}" style="width:65px;padding:4px;" onchange="updateInfraCount(${idx}, this.value)"> ×</td>
+                <td><button class="btn btn--danger btn--xs" onclick="demolishBuilding(${idx})">Abreißen</button></td>
+            </tr>`;
+        });
+        container.innerHTML = html + '</tbody></table>';
+    }
+
+    function demolishBuilding(idx) {
+        infrastructure.splice(idx, 1);
+        calculateMatrix();
+    }
+
+    function updateInfraCount(idx, val) {
+        const c = parseInt(val);
+        if (c > 0) { infrastructure[idx].count = c; calculateMatrix(); }
+    }
+
+    function renderBlueprintsTable() {
+        const container = document.getElementById('blueprintsContainer');
+        if (blueprints.length === 0) { container.innerHTML = '<span class="empty-state">Keine Rezepte vorhanden.</span>'; return; }
+
+        let html = `<table><thead><tr><th>Gebäude</th><th>Zutaten /h</th><th>Erzeugt /h</th><th>Aktion</th></tr></thead><tbody>`;
+        blueprints.forEach((bp, idx) => {
+            const inText  = bp.inputs.map(i  => `${i.rate.toFixed(1)} ${escHtml(i.name)}`).join('<br>') || '– keine –';
+            const outText = bp.outputs.map(o => `${o.rate.toFixed(1)} ${escHtml(o.name)}`).join('<br>');
+            html += `<tr>
+                <td><strong>${escHtml(bp.name)}</strong></td>
+                <td class="text-demand" style="font-size:12px;">${inText}</td>
+                <td class="text-supply" style="font-size:12px;">${outText}</td>
+                <td><button class="btn btn--ghost btn--xs" onclick="loadBlueprintIntoForm(${idx})">✏️</button></td>
+            </tr>`;
+        });
+        container.innerHTML = html + '</tbody></table>';
+    }
+
+    function loadBlueprintIntoForm(idx) {
+        const bp = blueprints[idx];
+        document.getElementById('bName').value = bp.name;
+        const inputsContainer = document.getElementById('inputsContainer');
+        inputsContainer.innerHTML = '';
+        bp.inputs.forEach(inp => {
+            const rowId = 'inputRow_' + Date.now() + Math.random().toString(36).substr(2, 5);
+            inputsContainer.insertAdjacentHTML('beforeend', `
+                <div class="form-row" id="${rowId}">
+                    <input type="text"   class="input-item-name" style="flex:2;" value="${escHtml(inp.name)}">
+                    <input type="number" class="input-item-qty"  style="width:80px;" value="${inp.rate.toFixed(2)}">
+                    <button type="button" class="btn btn--danger btn--icon" onclick="document.getElementById('${rowId}').remove()">✕</button>
+                </div>`);
+        });
+        for (let i = 1; i <= 3; i++) {
+            const out = bp.outputs[i - 1];
+            document.getElementById(`outName${i}`).value = out ? out.name  : '';
+            document.getElementById(`outQty${i}`).value  = out ? out.rate.toFixed(2) : '';
+        }
+        document.getElementById('bName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // ── OPTIMIZER ──────────────────────────────────────────────────────
+    function runShopOptimizer() {
+        const maxSlots  = parseInt(document.getElementById('optMaxSlots').value);
+        const strategy  = document.getElementById('optStrategy').value;  // FIX: now actually read
+        const resultsDiv = document.getElementById('optimizerResults');
+
+        if (infrastructure.length === 0) {
+            resultsDiv.innerHTML = '<div class="alert alert--warning">Keine Infrastruktur aufgestellt.</div>';
+            return;
+        }
+
+        const production = {};
+        infrastructure.forEach(infra => {
+            const bp = blueprints.find(b => b.name === infra.blueprintName);
+            if (!bp) return;
+            bp.outputs.forEach(out => { production[out.name] = (production[out.name] || 0) + out.rate * infra.count; });
+        });
+        infrastructure.forEach(infra => {
+            const bp = blueprints.find(b => b.name === infra.blueprintName);
+            if (!bp) return;
+            bp.inputs.forEach(inp => { if (production[inp.name] !== undefined) production[inp.name] -= inp.rate * infra.count; });
+        });
+
+        const sellable = Object.entries(production).filter(([, v]) => v > 0).map(([name, surplus]) => ({ name, surplus }));
+        if (sellable.length === 0) {
+            resultsDiv.innerHTML = '<div class="alert alert--warning">Kein verkaufbarer Überschuss vorhanden.</div>';
+            return;
+        }
+        if (shops.length === 0) {
+            resultsDiv.innerHTML = '<div class="alert alert--warning">Keine Läden definiert. Registriere zuerst deine Läden.</div>';
+            return;
+        }
+
+        const remaining = {};
+        sellable.forEach(p => { remaining[p.name] = p.surplus; });
+
+        let html = '';
+        const globalAssigned = { ...remaining };
+        lastOptimizerOutput = [];
+
+        shops.forEach(shopObj => {
+            const typeObj      = shopObj.typeName ? shopTypes.find(t => t.name === shopObj.typeName) : null;
+            const allowedForShop = typeObj ? typeObj.allowedProducts : null;
+            const slotsForShop = [];
+            const usedProducts = new Set();
+
+            let candidates = Object.entries(globalAssigned)
+                .filter(([name, val]) => val > 0 && (!allowedForShop || allowedForShop.includes(name)));
+
+            // FIX: strategy is now actually used
+            if (strategy === 'variety') {
+                // One of each product first (sorted by surplus descending), then fill remaining slots
+                candidates.sort((a, b) => b[1] - a[1]);
+                // First pass: one slot per product
+                for (const [prodName, surplus] of candidates) {
+                    if (slotsForShop.length >= maxSlots) break;
+                    if (usedProducts.has(prodName)) continue;
+                    const existingRate = getExistingSlotRate(prodName);
+                    const slotRate = existingRate > 0 ? Math.min(existingRate, surplus) : surplus / (maxSlots * shops.length);
+                    const pct = Math.min(100, Math.round((slotRate / surplus) * 100));
+                    slotsForShop.push({ product: prodName, rate: slotRate, surplus, pct });
+                    usedProducts.add(prodName);
+                    globalAssigned[prodName] = Math.max(0, globalAssigned[prodName] - slotRate);
+                }
+            } else {
+                // Default: surplus-first (highest surplus gets slots)
+                candidates.sort((a, b) => b[1] - a[1]);
+                for (const [prodName, surplus] of candidates) {
+                    if (slotsForShop.length >= maxSlots) break;
+                    if (usedProducts.has(prodName)) continue;
+                    const existingRate = getExistingSlotRate(prodName);
+                    const slotRate = existingRate > 0 ? Math.min(existingRate, surplus) : surplus / (maxSlots * shops.length);
+                    const pct = Math.min(100, Math.round((slotRate / surplus) * 100));
+                    slotsForShop.push({ product: prodName, rate: slotRate, surplus, pct });
+                    usedProducts.add(prodName);
+                    globalAssigned[prodName] = Math.max(0, globalAssigned[prodName] - slotRate);
+                }
+            }
+
+            lastOptimizerOutput.push({ name: shopObj.name, typeName: shopObj.typeName, typeObj, slots: slotsForShop });
+        });
+
+        html += `<div class="alert alert--info" style="margin-bottom:10px;">
+            ✅ Optimierung für <strong>${shops.length} Läden</strong> berechnet.
+            Klicke „Übernehmen" um ein Layout live zu übertragen.
+        </div>`;
+
+        lastOptimizerOutput.forEach((shop, idx) => {
+            const typePill = shop.typeObj
+                ? `<span class="badge--type" style="background:${shop.typeObj.color};font-size:10px;">${escHtml(shop.typeObj.name)}</span>`
+                : `<span class="badge badge--error" style="font-size:10px;">⚠ Kein Typ</span>`;
+
+            html += `<div class="opt-header-row">
+                <div class="opt-shop-title">🏪 ${escHtml(shop.name)} ${typePill}</div>
+                <button class="btn btn--success btn--xs" onclick="applyOptimizedShopLayout(${idx})">📥 Übernehmen</button>
+            </div>`;
+
+            if (shop.slots.length === 0) {
+                html += `<div style="font-size:12px;color:var(--text-muted);padding:5px 10px;">Kein passender Überschuss für diesen Laden.</div>`;
+            } else {
+                shop.slots.forEach((slot, rank) => {
+                    const barClass = slot.pct >= 80 ? '' : slot.pct >= 40 ? 'yellow' : 'red';
+                    const covColor = slot.pct >= 80 ? 'var(--green)' : slot.pct >= 40 ? 'var(--amber)' : 'var(--red)';
+                    html += `<div class="opt-slot-row">
+                        <div class="opt-slot-rank">${rank + 1}</div>
+                        <div class="opt-slot-product">${escHtml(slot.product)}</div>
+                        <div class="opt-fill-bar"><div class="opt-fill-inner ${barClass}" style="width:${slot.pct}%"></div></div>
+                        <div class="opt-slot-coverage" style="color:${covColor}">${slot.pct}%</div>
+                        <div class="opt-slot-rate">~${Math.round(slot.rate).toLocaleString()}/h</div>
+                    </div>`;
+                });
+            }
+        });
+
+        const unassigned = Object.entries(globalAssigned).filter(([, v]) => v > 100);
+        if (unassigned.length > 0) {
+            html += `<div class="alert alert--warning" style="margin-top:10px;">
+                <strong>Überschuss ohne Laden:</strong><br>
+                ${unassigned.map(([name, val]) => `• ${escHtml(name)}: <strong>+${Math.round(val).toLocaleString()}/h</strong>`).join('<br>')}
+            </div>`;
+        }
+
+        resultsDiv.innerHTML = html;
+    }
+
+    function getExistingSlotRate(productName) {
+        return globalProductRates[productName] ? globalProductRates[productName].rate : 0;
+    }
+
+    // ── 1-KLICK-ÜBERNAHME ─────────────────────────────────────────────
+    function applyOptimizedShopLayout(optimizerIndex) {
+        const proposed = lastOptimizerOutput[optimizerIndex];
+        if (!proposed) return;
+
+        const shopIdx = shops.findIndex(s => s.name.toLowerCase() === proposed.name.toLowerCase());
+        if (shopIdx === -1) {
+            alert(`Laden „${proposed.name}" nicht mehr im System gefunden.`);
+            return;
+        }
+
+        const newSlots = proposed.slots.map(slot => {
+            let pieces = Math.round(slot.rate), minutes = 60, finalRate = slot.rate;
+            if (globalProductRates[slot.product]) {
+                const g  = globalProductRates[slot.product];
+                pieces   = g.pieces;
+                minutes  = g.minutes;
+                finalRate = g.rate;
+            } else {
+                globalProductRates[slot.product] = { pieces, minutes, rate: finalRate };
+            }
+            return { productName: slot.product, pieces, minutes, rate: finalRate };
+        });
+
+        shops[shopIdx].slots = newSlots;
+        syncAllShopsWithGlobalRates();
+        calculateMatrix();
+        setStatus(`⚡ Layout erfolgreich auf „${proposed.name}" angewendet!`);
+        runShopOptimizer();
+    }
+
+    // ── EXPORT / IMPORT ────────────────────────────────────────────────
+    function exportData() {
+        try {
+            const payload = JSON.stringify({ blueprints, infrastructure, shops, shopTypes, globalProductRates }, null, 2);
+            const a = document.createElement('a');
+            a.href = 'data:text/json;charset=utf-8,' + encodeURIComponent(payload);
+            a.download = 'tycoon_master_matrix_v3_2.json';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } catch (err) { alert('Export fehlgeschlagen: ' + err.message); }
+    }
+
+    function importData(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            try {
+                const parsed = JSON.parse(e.target.result);
+                if (!parsed.blueprints || !parsed.infrastructure) {
+                    alert('Falsches Dateiformat – blueprints oder infrastructure fehlen.');
+                    return;
+                }
+                blueprints     = parsed.blueprints;
+                infrastructure = parsed.infrastructure;
+                shops          = parsed.shops         || [];
+                if (parsed.shopTypes && parsed.shopTypes.length > 0) shopTypes = parsed.shopTypes;
+                if (parsed.globalProductRates) globalProductRates = parsed.globalProductRates;
+
+                syncAllShopsWithGlobalRates();
+                rebuildDropdowns();
+                rebuildShopTypeDropdown();
+                renderShopTypesDisplay();
+                calculateMatrix();
+                setStatus(`✅ Backup geladen: ${blueprints.length} Rezepte, ${infrastructure.length} Gebäude, ${shops.length} Läden.`);
+            } catch (err) { alert('Fehler beim Einlesen: ' + err.message); }
+        };
+        reader.readAsText(file);
+        input.value = '';
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mischungskreuz Rechner (10% Verdünnung)</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #2c3e50;
+            --primary-color: #3498db;
+            --primary-hover: #2980b9;
+            --accent-color: #27ae60;
+            --border-color: #dcdde1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 480px;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            font-size: 22px;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #1a252f;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px; /* Verhindert Auto-Zoom auf iPhones */
+            outline: none;
+            transition: border-color 0.2s;
+            -moz-appearance: textfield;
+        }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 4px;
+        }
+
+        .result-card {
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--accent-color);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 25px;
+            display: none;
+        }
+
+        .result-card h2 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: var(--accent-color);
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+
+        .result-row:last-child {
+            margin-bottom: 0;
+            padding-top: 8px;
+            border-top: 1px dashed var(--border-color);
+            font-weight: bold;
+        }
+
+        .error {
+            color: #e74c3c;
+            font-size: 13px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Mischungs-Rechner</h1>
+    
+    <div class="input-group">
+        <label for="menge">1. Vorhandene Menge (Liter)</label>
+        <input type="number" id="menge" step="any" placeholder="z.B. 450000" oninput="berechne()">
+    </div>
+
+    <div class="input-group">
+        <label for="qualitaet">2. Vorhandene Qualität (%)</label>
+        <input type="number" id="qualitaet" step="any" placeholder="z.B. 34.13" oninput="berechne()">
+    </div>
+
+    <div class="input-group">
+        <label for="ziel">3. Ziel-Qualität (%)</label>
+        <input type="number" id="ziel" step="any" value="20" placeholder="z.B. 20" oninput="berechne()">
+        <p class="info-text">Standardmäßig auf 20% eingestellt.</p>
+    </div>
+
+    <div class="input-group">
+        <label>Zusatz-Qualität</label>
+        <input type="text" value="10 %" disabled style="background-color: #f1f2f6; color: #7f8c8d; cursor: not-allowed;">
+    </div>
+
+    <div id="error" class="error"></div>
+
+    <div id="result" class="result-card">
+        <h2>Berechnungsergebnis:</h2>
+        <div class="result-row">
+            <span>Zuzugebende 10% Menge:</span>
+            <span id="res-zugabe">0 l</span>
+        </div>
+        <div class="result-row">
+            <span>Neue Gesamtmenge:</span>
+            <span id="res-gesamt">0 l</span>
+        </div>
+    </div>
+</div>
+
+<script>
+function berechne() {
+    const menge = parseFloat(document.getElementById('menge').value);
+    const qualitaet = parseFloat(document.getElementById('qualitaet').value);
+    const ziel = parseFloat(document.getElementById('ziel').value);
+    const zusatz = 10.0; // Festgelegte 10% Lösung
+
+    const errorDiv = document.getElementById('error');
+    const resultCard = document.getElementById('result');
+
+    // Zurücksetzen
+    errorDiv.style.display = 'none';
+    resultCard.style.display = 'none';
+
+    // Validierung der Pflichtfelder
+    if (isNaN(menge) || isNaN(qualitaet) || isNaN(ziel)) {
+        return;
+    }
+
+    if (menge <= 0) {
+        errorDiv.innerText = "Die vorhandene Menge muss größer als 0 sein.";
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    // Logische Prüfung für das Mischungskreuz
+    if (qualitaet <= zusatz) {
+        errorDiv.innerText = "Die vorhandene Qualität muss größer als die Zusatz-Qualität (10%) sein.";
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    if (ziel <= zusatz || ziel >= qualitaet) {
+        errorDiv.innerText = `Die Ziel-Qualität muss zwischen ${zusatz}% und ${qualitaet}% liegen.`;
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    // Mischungskreuz Berechnung:
+    // Anteil Basis = Ziel - Zusatz
+    // Anteil Zusatz = Basis - Ziel
+    const anteilBasis = ziel - zusatz;
+    const anteilZusatz = qualitaet - ziel;
+
+    // Verhältnis berechnen basierend auf der vorhandenen Menge
+    const mengeZusatz = (menge / anteilBasis) * anteilZusatz;
+    const gesamtMenge = menge + mengeZusatz;
+
+    // Ergebnisse formatieren (lokale Tausendertrennung, max. 2 Nachkommastellen)
+    const formatter = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
+
+    document.getElementById('res-zugabe').innerText = formatter.format(mengeZusatz) + " l";
+    document.getElementById('res-gesamt').innerText = formatter.format(gesamtMenge) + " l";
+    
+    resultCard.style.display = 'block';
+}
+</script>
+
+</body>
+</html>
